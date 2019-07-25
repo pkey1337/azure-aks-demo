@@ -1,0 +1,43 @@
+# Default values for azure-aks-demo.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: azure-aks-demo
+  tag: 0.0.1
+  pullPolicy: IfNotPresent
+
+nameOverride: "webservice"
+fullnameOverride: "azure-aks-demo"
+
+springProfile: "default"
+
+internalLoadbalancerVnet: "YourPersonalSubnetID"
+
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8080
+
+ingress:
+  enabled: true
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: {{ include "azure-aks-demo.fullname" . }}-internal
+    annotations:
+        service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+        service.beta.kubernetes.io/azure-load-balancer-internal-subnet: {{ .Values.internalLoadbalancerVnet }}
+spec:
+    type: LoadBalancer
+    ports:
+        - port: 80
+          targetPort: {{ .Values.service.targetPort }}
+    selector:
+        application: {{ include "azure-aks-demo.fullname" . }}

@@ -1,0 +1,23 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ include "azure-aks-demo.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "azure-aks-demo.name" . }}
+    helm.sh/chart: {{ include "azure-aks-demo.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            backend:
+              serviceName: {{ include "azure-aks-demo.fullname" . }}
+              servicePort: 8000
+{{- end }}

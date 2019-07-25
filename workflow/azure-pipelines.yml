@@ -1,0 +1,75 @@
+variables:
+  projectName: azure-aks-demo
+  registryName: $(registryName)
+  imageName: $(projectName):$(Build.BuildNumber)
+  version: $(Build.BuildNumber)
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: Maven@3
+  displayName: 'Set version'
+  inputs:
+    mavenPomFile: 'app/$(projectName)/pom.xml'
+    goals: "versions:set versions:commit -DnewVersion=$(version)"
+    publishJUnitResults: false
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '1.8'
+    jdkArchitectureOption: 'x64'
+    mavenVersionOption: 'Default'
+    mavenAuthenticateFeed: false
+    effectivePomSkip: false
+    sonarQubeRunAnalysis: false
+- task: Maven@3
+  displayName: 'Build application via Maven'
+  inputs:
+    mavenPomFile: 'app/$(projectName)/pom.xml'
+    mavenOptions: '-Xmx3072m'
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '1.8'
+    jdkArchitectureOption: 'x64'
+    publishJUnitResults: true
+    testResultsFiles: '**/surefire-reports/TEST-*.xml'
+    goals: 'package'
+
+- task: Docker@2
+  displayName: 'Login to private Docker registry'
+  inputs:
+    containerRegistry: $(registryName)
+    command: 'login'
+  condition: succeeded()
+
+- task: Docker@2
+  displayName: 'Build and push Docker image'
+  inputs:
+    containerRegistry: $(registryName)
+    command: 'buildAndPush'
+    Dockerfile: 'infra/$(projectName)/Dockerfile'
+    repository: $(projectName)
+    buildContext: '$(Build.Repository.LocalPath)/app/$(projectName)/target/'
+    tags: |
+      $(version)
+      latest
+  condition: succeeded()
+
+- task: HelmInstaller@1
+  displayName: 'Install Helm'
+  inputs:
+    helmVersionToInstall: 'latest'
+
+- task: HelmDeploy@0
+  displayName: 'Package helm chart for release'
+  inputs:
+    command: 'package'
+    chartPath: 'infra/charts/$(projectName)'
+    chartVersion: $(version)
+    destination: $(build.artifactStagingDirectory)
+  condition: succeeded()
+
+- bash: az acr helm push -n $(registryName) -u $(registryUsername) -p $(registryPassword) $(build.artifactStagingDirectory)/$(projectName)-$(version).tgz
+  displayName: 'Push helm chart to registry'
+  condition: succeeded()
